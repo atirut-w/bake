@@ -148,12 +148,13 @@ end
 --- Run a command
 ---@param command string
 local function run(command)
+    command = resolve_macros(command)
     if command:sub(1,1) == "@" then
         command = command:sub(2)
     else
         print(command)
     end
-    os.execute(resolve_macros(command))
+    os.execute(command)
 end
 
 --- Run a target
