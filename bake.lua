@@ -4,7 +4,7 @@ do
     local raw_args = {...}
     
     if raw_args[1] == "-h" or raw_args[1] == "--help" then
-        print("Usage: make.lua [target]")
+        print("Usage: bake [target]")
         os.exit(0)
     else
         args.target = raw_args[1]
