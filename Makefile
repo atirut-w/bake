@@ -3,5 +3,5 @@ default:
 
 install:
 	@echo "Installing OCMake..."
-	@mkdir /usr/bin/
+	@mkdir /usr/bin/ 2>/dev/null
 	@cp make.lua /usr/bin/
