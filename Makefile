@@ -1,13 +1,7 @@
-# Just a little Makefile to test things out.
-macro1 = "Hello"
-
 default:
-	echo "First target is always the default."
-	@echo "Suppression test"
+	@echo "What do you expect me to do?"
 
-depend: default sus
-	@echo "Dependency test"
-
-sus:
-	@echo amogus
-	@$(info when the imposter is sus)
+install:
+	@echo "Installing OCMake..."
+	@mkdir /usr/bin/
+	@cp make.lua /usr/bin/
