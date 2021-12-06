@@ -24,19 +24,19 @@ local function exists(path)
     end
 end
 
-local makefile_content
+local bakefile_content
 do
     ---@type file*
     local file
-    if exists("Makefile") then
-        file = io.open("Makefile", "r")
-    elseif exists("makefile") then
-        file = io.open("makefile", "r")
+    if exists("Bakefile") then
+        file = io.open("Bakefile", "r")
+    elseif exists("bakefile") then
+        file = io.open("bakefile", "r")
     else
-        print("Makefile not found")
+        print("Bakefile not found")
         os.exit(1)
     end
-    makefile_content = file:read("a")
+    bakefile_content = file:read("a")
 end
 
 ---@class MakeTarget
@@ -98,7 +98,7 @@ end
 do
     ---@type integer
     local current_target = nil
-    for line in makefile_content:gmatch("[^\r\n]+") do
+    for line in bakefile_content:gmatch("[^\r\n]+") do
         if not line:match("^#") then
             local target_name, dependencies = line:match("^([^:]+):(.*)")
             if target_name then
