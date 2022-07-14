@@ -33,7 +33,7 @@ do
     elseif exists("bakefile") then
         file = io.open("bakefile", "r")
     else
-        print("Bakefile not found")
+        io.stderr:write("bake: Bakefile not found\n")
         os.exit(1)
     end
     bakefile_content = file:read("a")
@@ -53,9 +53,9 @@ local targets = {}
 ---@return string
 local function resolve_macros(text)
     for macro in text:gmatch("%$%(([^%)]+)%)") do
-        if macro:match(" ") then
-            local command = macro:match("^([^ ]+)")
-            local args = macro:match("^[^ ]+%s+(.*)")
+        if macro:match("%s") then
+            local command = macro:match("^(%S+)")
+            local args = macro:match("^%S+%s+(.*)")
 
             ---@param value any
             ---@param cases table<any, function>
@@ -65,7 +65,7 @@ local function resolve_macros(text)
 
             local cmd_result = switch(command, {
                 default = function()
-                    print("Unknown macro: " .. macro)
+                    io.stderr:write("bake: Unknown macro: " .. macro .. "\n")
                     return nil
                 end,
                 info = function()
@@ -86,7 +86,7 @@ local function resolve_macros(text)
             if macros[macro] then
                 text = text:gsub("%$%(" .. macro .. "%)", macros[macro])
             else
-                print("Unknown macro: " .. macro)
+                io.stderr:write("bake: Unknown macro: " .. macro .. "\n")
                 os.exit(1)
             end
         end
@@ -100,7 +100,7 @@ do
     local current_target = nil
     for line in bakefile_content:gmatch("[^\r\n]+") do
         if not line:match("^#") and line:match("%S") then
-            local target_name, dependencies = line:match("^([^:]+):(.*)")
+            local target_name, dependencies = line:match("^([^%s:]+):(.*)")
             if target_name then
                 current_target = #targets + 1
                 targets[current_target] = {
@@ -109,7 +109,7 @@ do
                     commands = {}
                 }
                 
-                for dependency in dependencies:gmatch("[^ ]+") do
+                for dependency in dependencies:gmatch("%S+") do
                     table.insert(targets[current_target].dependencies, dependency)
                 end
             else
@@ -140,7 +140,7 @@ local function get_target(name)
             return target
         end
     end
-    print("Target not found: " .. name)
+    io.stderr:write("bake: Target not found: " .. name .. "\n")
     os.exit(1)
 end
 
@@ -168,7 +168,7 @@ local function run_target(target)
 end
 
 if #targets == 0 then
-    print("No targets defined")
+    io.stderr:write("bake: No targets defined\n")
     os.exit(1)
 else
     if args.target then
