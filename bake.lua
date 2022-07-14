@@ -99,7 +99,7 @@ do
     ---@type integer
     local current_target = nil
     for line in bakefile_content:gmatch("[^\r\n]+") do
-        if not line:match("^#") then
+        if not line:match("^#") and line:match("%S") then
             local target_name, dependencies = line:match("^([^:]+):(.*)")
             if target_name then
                 current_target = #targets + 1
@@ -112,20 +112,19 @@ do
                 for dependency in dependencies:gmatch("[^ ]+") do
                     table.insert(targets[current_target].dependencies, dependency)
                 end
-            elseif current_target then
-                if line:match("^%s") then
-                    table.insert(targets[current_target].commands, line:match("^%s*(.*)"))
-                else
-                    current_target = nil
-                end
             else
                 -- TODO: Optimize pattern matching
                 local macro_name, macro_value = line:match("^([^=]+)=(.*)")
-                macro_name = macro_name:match("^%s*(.-)%s*$")
-                macro_value = macro_value:match("^%s*(.-)%s*$")
-
                 if macro_name then
+                    -- Trim whitespace
+                    macro_name = macro_name:match("^%s*(.-)%s*$")
+                    macro_value = macro_value:match("^%s*(.-)%s*$")
+
                     macros[macro_name] = resolve_macros(macro_value)
+                elseif current_target and line:match("^%s") then
+                    table.insert(targets[current_target].commands, line:match("^%s*(.*)"))
+                else
+                    current_target = nil
                 end
             end
         end
