@@ -1,3 +1,6 @@
+local fs = require("filesystem")
+local shell = require("shell")
+
 ---@type table<string, any>
 local args = {}
 do
@@ -105,6 +108,7 @@ do
                 current_target = #targets + 1
                 targets[current_target] = {
                     name = target_name,
+                    update_time = -1,
                     dependencies = {},
                     commands = {}
                 }
@@ -158,13 +162,38 @@ end
 
 --- Run a target
 ---@param target MakeTarget
-local function run_target(target)
+---@param is_first boolean
+---@return number
+local function run_target(target, is_first)
+    if target.update_time ~= -1 then
+        -- Do not run a given target more than once
+        return target.update_time
+    end
+
+    -- Find greatest modification timestamp of all dependency files
+    local depend_update_time = -1
     for _,dependency in ipairs(target.dependencies) do
-        run_target(get_target(dependency))
+        depend_update_time = math.max(depend_update_time, run_target(get_target(dependency), false))
     end
-    for _,command in ipairs(target.commands) do
-        run(command)
+
+    local target_path = shell.resolve(target.name)
+    if fs.exists(target_path) then
+        target.update_time = fs.lastModified(target_path)
+    else
+        target.update_time = math.huge
     end
+
+    -- Only run the target if no corresponding file found, or dependency updated
+    if target.update_time == math.huge or depend_update_time > target.update_time then
+        for _,command in ipairs(target.commands) do
+            run(command)
+        end
+        return math.huge
+    elseif is_first then
+        print("bake: \'" .. target.name .. "\' is up to date.")
+    end
+
+    return target.update_time
 end
 
 if #targets == 0 then
@@ -172,8 +201,8 @@ if #targets == 0 then
     os.exit(1)
 else
     if args.target then
-        run_target(get_target(args.target))
+        run_target(get_target(args.target), true)
     else
-        run_target(targets[1])
+        run_target(targets[1], true)
     end
 end
