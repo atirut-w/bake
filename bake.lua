@@ -44,6 +44,7 @@ end
 
 ---@class MakeTarget
 ---@field name string
+---@field update_time number
 ---@field dependencies table<integer, string>
 ---@field commands table<integer, string>
 
@@ -160,11 +161,20 @@ local function run(command)
     os.execute(command)
 end
 
+--- All of the dependency targets touched thus far (basically functions like a
+--- stack of the dependencies)
+---@type table<MakeTarget, boolean>
+local traversed_targets = {}
+
 --- Run a target
 ---@param target MakeTarget
 ---@param is_first boolean
 ---@return number
 local function run_target(target, is_first)
+    if traversed_targets[target] then
+        return -1
+    end
+    traversed_targets[target] = true
     if target.update_time ~= -1 then
         -- Do not run a given target more than once
         return target.update_time
@@ -173,8 +183,16 @@ local function run_target(target, is_first)
     -- Find greatest modification timestamp of all dependency files
     local depend_update_time = -1
     for _,dependency in ipairs(target.dependencies) do
-        depend_update_time = math.max(depend_update_time, run_target(get_target(dependency), false))
+        local update_time = run_target(get_target(dependency), false)
+        if update_time == -1 then
+            print("bake: Circular " .. target.name .. " <- " .. get_target(dependency).name .. " dependency dropped.")
+        end
+        depend_update_time = math.max(depend_update_time, update_time)
     end
+
+    -- Finished dependencies for this target, remove the traversed_targets entry
+    -- so we don't mark it as a cycle in another target
+    traversed_targets[target] = nil
 
     local target_path = shell.resolve(target.name)
     if fs.exists(target_path) then
