@@ -1,4 +1,5 @@
 local fs = require("filesystem")
+local sh = require("sh")
 local shell = require("shell")
 
 local xprint = require("xprint")
@@ -39,7 +40,7 @@ do
         file = io.open("bakefile", "r")
     else
         io.stderr:write("bake: Bakefile not found\n")
-        os.exit(1)
+        os.exit(2)
     end
     bakefile_content = file:read("a")
 end
@@ -109,7 +110,7 @@ local function resolve_macros(text)
                 text = text:gsub("%$%(" .. macro .. "%)", macros[macro])
             else
                 io.stderr:write("bake: Unknown macro: " .. macro .. "\n")
-                os.exit(1)
+                os.exit(2)
             end
         end
     end
@@ -131,7 +132,7 @@ do
         for target_name in current_targets:gmatch("%S+") do
             if targets[target_name] then
                 io.stderr:write("bake: Found multiple definitions for target \'" .. target_name .. "\'.\n")
-                os.exit(1)
+                os.exit(2)
             end
             local new_target = {
                 update_time = -1,
@@ -199,15 +200,38 @@ do
 end
 
 --- Run a command
+---@param target_name string
 ---@param command string
-local function run(command)
+local function run(target_name, command)
     command = resolve_macros(command)
+    local suppress_error = false
     if command:sub(1,1) == "@" then
-        command = command:sub(2)
+        if command:sub(2,2) == "-" then
+            suppress_error = true
+            command = command:sub(3)
+        else
+            command = command:sub(2)
+        end
+    elseif command:sub(1,1) == "-" then
+        suppress_error = true
+        if command:sub(2,2) == "@" then
+            command = command:sub(3)
+        else
+            command = command:sub(2)
+            print(command)
+        end
     else
         print(command)
     end
-    os.execute(command)
+    shell.execute(command)
+    if sh.getLastExitCode() ~= 0 then
+        if suppress_error then
+            print("bake: In target \'" .. target_name .. "\': Error " .. tostring(sh.getLastExitCode()) .. " (ignored)")
+        else
+            io.stderr:write("bake: In target \'" .. target_name .. "\': Error " .. tostring(sh.getLastExitCode()) .. "\n")
+            os.exit(2)
+        end
+    end
 end
 
 --- All of the dependency targets touched thus far (basically functions like a
@@ -228,7 +252,7 @@ local function run_target(target_name, is_first)
     if not target then
         if not fs.exists(target_path) and not targets_metadata[target_name].phony then
             io.stderr:write("bake: Target not found: " .. target_name .. "\n")
-            os.exit(1)
+            os.exit(2)
         elseif is_first then
             print("bake: Nothing to be done for \'" .. target_name .. "\'.")
         end
@@ -284,7 +308,7 @@ local function run_target(target_name, is_first)
             ["^"] = all_dependencies
         }
         for _,command in ipairs(target.commands) do
-            run(command:gsub("%$([@?^])", automaticVars))
+            run(target_name, command:gsub("%$([@?^])", automaticVars))
         end
         return math.huge
     elseif is_first then
@@ -296,7 +320,7 @@ end
 
 if #targets_ordering == 0 then
     io.stderr:write("bake: No targets defined\n")
-    os.exit(1)
+    os.exit(2)
 else
     if args.target then
         run_target(args.target, true)
