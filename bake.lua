@@ -4,17 +4,38 @@ local shell = require("shell")
 
 local xprint = require("xprint")
 
+--- Send command-line usage information to standard output.
+local function print_usage()
+    print("Usage: bake [options] [target] ...")
+    print("Options:")
+    print("  -h, --help             Print this message and exit.")
+    print("  -i, --ignore-errors    Ignore errors from recipes.")
+end
+
 ---@type table<string, any>
 local args = {}
 do
-    local raw_args = {...}
+    local raw_args, raw_opts = shell.parse(...)
     
-    if raw_args[1] == "-h" or raw_args[1] == "--help" then
-        print("Usage: bake [target]")
+    if raw_opts["h"] or raw_opts["help"] then
+        print_usage()
         os.exit(0)
-    else
-        args.target = raw_args[1]
     end
+    if raw_opts["i"] or raw_opts["ignore-errors"] then
+        args.ignore_errors = true
+        raw_opts["i"] = nil
+        raw_opts["ignore-errors"] = nil
+    end
+    if next(raw_opts) then
+        local invalid_opt = next(raw_opts)
+        invalid_opt = (#invalid_opt == 1 and "-" .. invalid_opt or "--" .. invalid_opt)
+        print("bake: Unrecognized option \'" .. invalid_opt .. "\'")
+        print_usage()
+        os.exit(2)
+    end
+    args.targets = raw_args
+
+    xprint({}, "args", args)
 end
 
 --- Check if a file exists
@@ -204,7 +225,7 @@ end
 ---@param command string
 local function run(target_name, command)
     command = resolve_macros(command)
-    local suppress_error = false
+    local suppress_error = args.ignore_errors
     if command:sub(1,1) == "@" then
         if command:sub(2,2) == "-" then
             suppress_error = true
@@ -322,8 +343,10 @@ if #targets_ordering == 0 then
     io.stderr:write("bake: No targets defined\n")
     os.exit(2)
 else
-    if args.target then
-        run_target(args.target, true)
+    if args.targets[1] then
+        for i, target_name in ipairs(args.targets) do
+            run_target(target_name, true)
+        end
     else
         run_target(targets_ordering[1], true)
     end
