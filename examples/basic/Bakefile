@@ -1,0 +1,11 @@
+var1 = Hello
+ 
+default:
+	echo $(var1)
+	@echo "$(var1), world!"
+
+depend: dependency
+	@echo "This depends on target"
+
+dependency:
+	@echo "This is depended on by a target"

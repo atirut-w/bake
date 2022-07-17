@@ -1,0 +1,44 @@
+var1 = Hello
+
+# does stuff
+default:
+	# this comment appears in output
+	@# this does not
+	echo $(var1)
+	@echo "$(var1), world!"
+	# Tab does not show in output.
+	
+    # Neither does a blank line.
+
+	@echo "$(var2) message"
+	$(info this is called with info func)
+	echo $(shell ls /)
+
+# Declare some vars, and change one of the values (simply expanded behavior).
+var2 = test 123
+var3 = t1 t2	t3
+var2 = Another
+var4 = t1 t3
+
+# Target dependencies can be declared with a variable.
+t: $(var3)
+	@echo "running $@"
+	@echo "all newer prereqs = $?"
+	@echo "all prereqs = $^"
+	@echo "." >> t
+
+# Targets can also be declared with variable.
+$(var4): t2
+	@echo "running $@"
+	@echo "all newer prereqs = $?"
+	@echo "all prereqs = $^"
+	@echo "." >> $@
+
+# Disabled t2 target for test. The file must be created manually for 't' to run.
+#t2:
+
+# Declaring clean as .PHONY allows the target to always run regardless of any
+# file named 'clean'.
+.PHONY: clean
+clean:
+	rm t*
