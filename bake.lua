@@ -2,8 +2,6 @@ local fs = require("filesystem")
 local sh = require("sh")
 local shell = require("shell")
 
-local xprint = require("xprint")
-
 --- Send command-line usage information to standard output.
 local function print_usage()
     print("Usage: bake [options] [target] ...")
@@ -34,8 +32,6 @@ do
         os.exit(2)
     end
     args.targets = raw_args
-
-    xprint({}, "args", args)
 end
 
 --- Check if a file exists
@@ -215,9 +211,6 @@ do
     if current_targets then
         add_targets()
     end
-
-    print("finished file scan")
-    xprint({}, "macros", macros, "targets", targets, "targets_metadata", targets_metadata)
 end
 
 --- Run a command
