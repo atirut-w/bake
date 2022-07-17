@@ -6,8 +6,9 @@ local shell = require("shell")
 local function print_usage()
     print("Usage: bake [options] [target] ...")
     print("Options:")
-    print("  -h, --help             Print this message and exit.")
-    print("  -i, --ignore-errors    Ignore errors from recipes.")
+    print("  -h, --help               Print this message and exit.")
+    print("  -i, --ignore-errors      Ignore errors from recipes.")
+    print("  -s, --silent, --quiet    Don\'t echo recipes.")
 end
 
 ---@type table<string, any>
@@ -23,6 +24,12 @@ do
         args.ignore_errors = true
         raw_opts["i"] = nil
         raw_opts["ignore-errors"] = nil
+    end
+    if raw_opts["s"] or raw_opts["silent"] or raw_opts["quiet"] then
+        args.silent = true
+        raw_opts["s"] = nil
+        raw_opts["silent"] = nil
+        raw_opts["quiet"] = nil
     end
     if next(raw_opts) then
         local invalid_opt = next(raw_opts)
@@ -218,8 +225,10 @@ end
 ---@param command string
 local function run(target_name, command)
     command = resolve_macros(command)
+    local silent = args.silent
     local suppress_error = args.ignore_errors
     if command:sub(1,1) == "@" then
+        silent = true
         if command:sub(2,2) == "-" then
             suppress_error = true
             command = command:sub(3)
@@ -229,12 +238,13 @@ local function run(target_name, command)
     elseif command:sub(1,1) == "-" then
         suppress_error = true
         if command:sub(2,2) == "@" then
+            silent = true
             command = command:sub(3)
         else
             command = command:sub(2)
-            print(command)
         end
-    else
+    end
+    if not silent then
         print(command)
     end
     shell.execute(command)
