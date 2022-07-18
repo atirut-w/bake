@@ -1,9 +1,13 @@
+# If OpenOS had the 'true' command built in, we wouldn't need to do the
+# shenanigans below:
+true = cat /dev/null
+
 default:
 	@echo "What do you expect me to do?"
 
 install:
 	@echo "Installing Bake..."
-	@mkdir /usr/bin/ 2>/dev/null
+	@mkdir /usr/bin/ 2>/dev/null || $(true)
 	@cp bake.lua /usr/bin/
 
 uninstall:
