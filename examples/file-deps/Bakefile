@@ -1,0 +1,47 @@
+# Dependency graph:
+#
+#    f <------.
+#   /|\       |
+#  / | \      |
+# f1 |  f3    |
+#  \ |  |\    |
+#   \|  | \   |
+#    f2 f4 f5 |
+#     \   /   |
+#      \ /    |
+#       f6----'
+#
+# If any target's dependencies update, the target should update too. Other
+# targets are left untouched.
+
+file: file1 file2 file3 file1
+	@echo "Update file"
+	@echo "." >> file
+
+file1: file2
+	@echo "Update file1"
+	@echo "." >> file1
+
+file2: file6
+	@echo "Update file2"
+	@echo "." >> file2
+
+file3: file4 file5
+	@echo "Update file3"
+	@echo "." >> file3
+
+file4:
+	@echo "Update file4"
+	@echo "." >> file4
+
+file5: file6
+	@echo "Update file5"
+	@echo "." >> file5
+
+file6: file
+	# file6 has a recursive dependency back to file (it should be ignored)
+	@echo "Update file6"
+	@echo "." >> file6
+
+clean:
+	rm file*

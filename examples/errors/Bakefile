@@ -1,0 +1,23 @@
+all: pass pass2 pass3
+
+# Runs fine, printing error codes to the output.
+pass:
+	-false
+	-ls /not_a_real_dir
+	-@false
+	@-false
+	touch pass
+
+pass2: fail
+	@echo "Running pass2"
+
+# Stops running targets in here.
+fail:
+	not_a_real_command
+	touch fail
+
+pass3:
+	@echo "Running pass3"
+
+clean:
+	-rm pass fail
